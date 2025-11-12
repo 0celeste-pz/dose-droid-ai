@@ -47,6 +47,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        pending: {
+          DEFAULT: "hsl(var(--pending))",
+          foreground: "hsl(var(--pending-foreground))",
+        },
+        taken: {
+          DEFAULT: "hsl(var(--taken))",
+          foreground: "hsl(var(--taken-foreground))",
+        },
+        scheduled: {
+          DEFAULT: "hsl(var(--scheduled))",
+          foreground: "hsl(var(--scheduled-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
