@@ -7,11 +7,6 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://3bbbbd47-74fc-4a98-ab2a-0e50f1cdef35.lovableproject.com?forceHideBadge=true',
     cleartext: true
-  },
-  plugins: {
-    BluetoothSerial: {
-      requestPermissions: true
-    }
   }
 };
 

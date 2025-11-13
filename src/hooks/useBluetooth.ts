@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { BluetoothSerial } from 'capacitor-bluetooth-serial';
+import { BluetoothSerial } from '@awesome-cordova-plugins/bluetooth-serial';
 
 interface BluetoothDevice {
   name?: string;
@@ -15,7 +15,7 @@ export const useBluetooth = () => {
     try {
       // Request Bluetooth permissions
       const enabled = await BluetoothSerial.isEnabled();
-      if (!enabled.value) {
+      if (!enabled) {
         await BluetoothSerial.enable();
       }
 
@@ -23,7 +23,7 @@ export const useBluetooth = () => {
       const devices = await BluetoothSerial.list();
       
       // Find HC-05 device
-      const hc05 = devices.devices.find(d => 
+      const hc05 = devices.find(d => 
         d.name?.includes('HC-05') || d.address?.includes('HC-05')
       );
 
@@ -37,7 +37,7 @@ export const useBluetooth = () => {
       }
 
       // Connect to device
-      await BluetoothSerial.connect({ address: hc05.address });
+      await BluetoothSerial.connect(hc05.address);
       
       setDevice({ name: hc05.name || 'HC-05', id: hc05.address });
       setIsConnected(true);
@@ -83,7 +83,7 @@ export const useBluetooth = () => {
     }
 
     try {
-      await BluetoothSerial.write({ data: command + '\n' });
+      await BluetoothSerial.write(command + '\n');
       console.log('Command sent:', command);
     } catch (error) {
       console.error('Error sending command:', error);
