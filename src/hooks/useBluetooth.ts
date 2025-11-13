@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { BluetoothSerial } from 'capacitor-bluetooth-serial';
 
 interface BluetoothDevice {
   name?: string;
@@ -9,61 +10,70 @@ interface BluetoothDevice {
 export const useBluetooth = () => {
   const [device, setDevice] = useState<BluetoothDevice | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [characteristic, setCharacteristic] = useState<any>(null);
 
   const connect = useCallback(async () => {
     try {
-      // Request Bluetooth device
-      const device = await (navigator as any).bluetooth.requestDevice({
-        filters: [{ namePrefix: 'HC-05' }],
-        optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
-      });
-
-      if (!device.gatt) {
-        throw new Error('No GATT server available');
+      // Request Bluetooth permissions
+      const enabled = await BluetoothSerial.isEnabled();
+      if (!enabled.value) {
+        await BluetoothSerial.enable();
       }
 
-      // Connect to GATT server
-      const server = await device.gatt.connect();
+      // List available devices
+      const devices = await BluetoothSerial.list();
       
-      // Get service
-      const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+      // Find HC-05 device
+      const hc05 = devices.devices.find(d => 
+        d.name?.includes('HC-05') || d.address?.includes('HC-05')
+      );
+
+      if (!hc05) {
+        toast({
+          title: "Dispositivo no encontrado",
+          description: "No se encontró el módulo HC-05. Asegúrate de que esté emparejado en la configuración de Bluetooth.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Connect to device
+      await BluetoothSerial.connect({ address: hc05.address });
       
-      // Get characteristic
-      const char = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
-      
-      setCharacteristic(char);
-      setDevice({ name: device.name, id: device.id });
+      setDevice({ name: hc05.name || 'HC-05', id: hc05.address });
       setIsConnected(true);
       
       toast({
         title: "Conectado",
-        description: `Conectado exitosamente a ${device.name || 'HC-05'}`,
+        description: `Conectado exitosamente a ${hc05.name || 'HC-05'}`,
       });
     } catch (error) {
       console.error('Bluetooth connection error:', error);
       toast({
         title: "Error de conexión",
-        description: "No se pudo conectar al dispositivo Bluetooth",
+        description: "No se pudo conectar al dispositivo Bluetooth. Asegúrate de que esté emparejado.",
         variant: "destructive",
       });
     }
   }, []);
 
-  const disconnect = useCallback(() => {
-    if (device) {
+  const disconnect = useCallback(async () => {
+    if (isConnected) {
+      try {
+        await BluetoothSerial.disconnect();
+      } catch (error) {
+        console.error('Disconnect error:', error);
+      }
       setDevice(null);
       setIsConnected(false);
-      setCharacteristic(null);
       toast({
         title: "Desconectado",
         description: "Dispositivo Bluetooth desconectado",
       });
     }
-  }, [device]);
+  }, [isConnected]);
 
   const sendCommand = useCallback(async (command: string) => {
-    if (!characteristic) {
+    if (!isConnected) {
       toast({
         title: "No conectado",
         description: "Debes conectarte al dispositivo primero",
@@ -73,8 +83,7 @@ export const useBluetooth = () => {
     }
 
     try {
-      const encoder = new TextEncoder();
-      await characteristic.writeValue(encoder.encode(command + '\n'));
+      await BluetoothSerial.write({ data: command + '\n' });
       console.log('Command sent:', command);
     } catch (error) {
       console.error('Error sending command:', error);
@@ -84,7 +93,7 @@ export const useBluetooth = () => {
         variant: "destructive",
       });
     }
-  }, [characteristic]);
+  }, [isConnected]);
 
   return {
     device,
